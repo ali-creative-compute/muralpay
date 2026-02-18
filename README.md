@@ -6,6 +6,8 @@ This is a Kotlin Multiplatform project targeting Server.
 
 This backend app is hosted via Railway. All setup is done and ready for cURL tests.
 
+Railway URL: https://muralpay-production.up.railway.app
+
 The following IDs and corresponding DB values are hydrated at startup to facilitate easier testing, but the product/checkout flows
 can be used for dynamic/novel data.
 
@@ -37,6 +39,19 @@ can be used for dynamic/novel data.
 > POST /customers/{customerId}/payment_intents/{paymentIntentId}
 >
 > With a returned paymentIntentId, initiate checkout. In the future, the /paymentMethods API would also be implemented to allow for dynamic payment methods and currencies.
+
+**Full test of Payout** (uses pre-hydrated data, triggers full sandbox MuralPay payout):
+
+```bash
+curl -X POST https://muralpay-production.up.railway.app/customers/customer-test-001/payment_intents/pi_test-001 \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+Expected response:
+```json
+{"payoutId":"130df139-6260-407c-86e2-8fec4f59f323","status":"PENDING"}
+```
 
 ## Future Work
 
