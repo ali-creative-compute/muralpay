@@ -1,0 +1,70 @@
+### Health check
+GET http://localhost:8080/
+
+###############################################
+# PRE-SEEDED TEST DATA
+# These endpoints use data that's automatically
+# created on server startup. No setup required.
+###############################################
+
+### Get pre-seeded product for test merchant
+GET http://localhost:8080/merchants/merchant-test-001/products
+
+### Execute pre-seeded payment intent (15 USDC payout)
+POST http://localhost:8080/customers/customer-test-001/payment_intents/pi_test-001
+Content-Type: application/json
+
+{}
+
+###############################################
+# MANUAL WORKFLOW
+# Use these to test the full create-then-execute flow
+###############################################
+
+### Create a product for merchant
+POST http://localhost:8080/merchants/merchant-123/products
+Content-Type: application/json
+
+{
+  "id": "prod-001",
+  "name": "Widget",
+  "price": 999,
+  "currency": "USD"
+}
+
+### Create another product
+POST http://localhost:8080/merchants/merchant-123/products
+Content-Type: application/json
+
+{
+  "id": "prod-002",
+  "name": "Gadget",
+  "price": 2499,
+  "currency": "USD"
+}
+
+### Get products for merchant
+GET http://localhost:8080/merchants/merchant-123/products
+
+### Create payment intent for customer
+POST http://localhost:8080/customers/cust-001/payment_intents
+Content-Type: application/json
+
+{
+  "productIds": ["prod-001", "prod-002"]
+}
+
+### Create payment method for customer
+POST http://localhost:8080/customers/cust-001/payment_methods
+Content-Type: application/json
+
+{
+  "currency": "USD"
+}
+
+### Execute payment intent (process payout via MuralPay)
+### Replace {paymentIntentId} with actual ID from create payment intent response
+POST http://localhost:8080/customers/cust-001/payment_intents/pi_REPLACE_WITH_ACTUAL_ID
+Content-Type: application/json
+
+{}

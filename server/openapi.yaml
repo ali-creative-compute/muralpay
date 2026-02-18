@@ -1,0 +1,274 @@
+openapi: 3.0.3
+info:
+  title: MuralPay Payment API
+  description: API for managing merchants, products, and customer payments via MuralPay
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /:
+    get:
+      summary: Health check
+      description: Returns a greeting message to verify the server is running
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Ktor: Hello, Java 21!"
+
+  /merchants/{merchantId}/products:
+    post:
+      summary: Create a product
+      description: Creates a new product for a merchant and stores it in the database
+      operationId: createProduct
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          description: The unique identifier of the merchant
+          schema:
+            type: string
+            example: "merchant-123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+    get:
+      summary: List merchant products
+      description: Retrieves all products for a specific merchant
+      operationId: listMerchantProducts
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          description: The unique identifier of the merchant
+          schema:
+            type: string
+            example: "merchant-123"
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+
+  /customers/{customerId}/payment_intents:
+    post:
+      summary: Create a payment intent
+      description: Creates a payment intent for a customer with specified products. Calculates total price from product prices.
+      operationId: createPaymentIntent
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: The unique identifier of the customer
+          schema:
+            type: string
+            example: "cust-001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentIntentRequest'
+      responses:
+        '201':
+          description: Payment intent created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePaymentIntentResponse'
+
+  /customers/{customerId}/payment_intents/{paymentIntentId}:
+    post:
+      summary: Execute a payment intent
+      description: Executes a payment intent by creating and executing a payout via MuralPay API. Transfers funds to the business wallet.
+      operationId: executePaymentIntent
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: The unique identifier of the customer
+          schema:
+            type: string
+            example: "cust-001"
+        - name: paymentIntentId
+          in: path
+          required: true
+          description: The unique identifier of the payment intent
+          schema:
+            type: string
+            example: "pi_60755b0c-69b8-491d-83ac-1591b0f32829"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Payment executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutePaymentResponse'
+        '404':
+          description: Payment intent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /customers/{customerId}/payment_methods:
+    post:
+      summary: Create a payment method
+      description: Creates a payment method for a customer (not yet implemented)
+      operationId: createPaymentMethod
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: The unique identifier of the customer
+          schema:
+            type: string
+            example: "cust-001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentMethodRequest'
+      responses:
+        '201':
+          description: Payment method created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePaymentMethodResponse'
+
+components:
+  schemas:
+    Product:
+      type: object
+      required:
+        - id
+        - name
+        - price
+      properties:
+        id:
+          type: string
+          description: Unique product identifier
+          example: "prod-001"
+        name:
+          type: string
+          description: Product name
+          example: "Widget"
+        price:
+          type: integer
+          description: Price in lowest denomination (cents for USD)
+          example: 999
+        currency:
+          type: string
+          description: Currency code
+          default: "USD"
+          example: "USD"
+
+    CreatePaymentIntentRequest:
+      type: object
+      required:
+        - productIds
+      properties:
+        productIds:
+          type: array
+          description: List of product IDs to include in the payment
+          items:
+            type: string
+          example: ["prod-001", "prod-002"]
+
+    CreatePaymentIntentResponse:
+      type: object
+      properties:
+        paymentIntentId:
+          type: string
+          description: Generated payment intent ID
+          example: "pi_60755b0c-69b8-491d-83ac-1591b0f32829"
+
+    PaymentIntent:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Payment intent ID
+          example: "pi_60755b0c-69b8-491d-83ac-1591b0f32829"
+        productIds:
+          type: array
+          items:
+            type: string
+          description: List of product IDs
+          example: ["prod-001", "prod-002"]
+        totalPrice:
+          type: integer
+          description: Total price in lowest denomination
+          example: 3498
+        currency:
+          type: string
+          default: "USD"
+          example: "USD"
+
+    ExecutePaymentResponse:
+      type: object
+      properties:
+        payoutId:
+          type: string
+          description: MuralPay payout ID
+          example: "a2ec005d-baab-4b63-b74a-a8e9ac00d347"
+        status:
+          type: string
+          description: Payout status
+          enum: [PENDING, AWAITING_EXECUTION, COMPLETED, FAILED]
+          example: "PENDING"
+
+    CreatePaymentMethodRequest:
+      type: object
+      required:
+        - currency
+      properties:
+        currency:
+          type: string
+          description: Currency code for the payment method
+          example: "USD"
+
+    CreatePaymentMethodResponse:
+      type: object
+      properties:
+        paymentMethodId:
+          type: string
+          description: Generated payment method ID
+          example: "pm_abc123-def456"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "PaymentIntent not found"
